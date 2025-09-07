@@ -17,6 +17,16 @@ type Cache struct {
 
 func NewCache(interval time.Duration) *Cache {
 	info := aiWeatherForecast()
+
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			c.cleanup()
+		}
+	}()
+
 	return &Cache{
 		info:     info,
 		interval: interval,
@@ -29,6 +39,8 @@ func (c *Cache) Get() int {
 
 	return c.info
 }
+
+func (c Cache) Set() {}
 
 func (c *Cache) Update(ctx context.Context) {
 	ticker := time.NewTicker(c.interval * time.Second)

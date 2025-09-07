@@ -56,7 +56,7 @@ func crawl(urls []string, k int) []int {
 			res[i] = resp.StatusCode
 			mu.Unlock()
 
-			res.Body.Close()
+			resp.Body.Close()
 		}(i, url)
 
 	}
@@ -66,5 +66,5 @@ func crawl(urls []string, k int) []int {
 
 func main() {
 	result := crawl(urls, 5)
-	fmt.Println("All done")
+	fmt.Println("All done:", result)
 }
