@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	_ "github.com/lib/pq"
 )
@@ -18,7 +19,7 @@ import (
 
 func main() {
 
-	if len(os.Args) == 2 {
+	if len(os.Args) == 2 { // желательно корректно завершать работу программу с помощью graceful shutdowp
 		cmdName := os.Args[1]
 		if cmdName == "help" {
 			fmt.Println("Usage is './currency update'")
@@ -45,11 +46,16 @@ func main() {
 				},
 			}
 
-			clientBank := &http.Client{}
+			clientBank := &http.Client{
+				Timeout: 10 * time.Minute,
+			}
 
-			for _, url := range urlsBank {
+			for _, url := range urlsBank { // нужно ассинхронно делать запросы с помощью горутин
 
-				req, _ := http.NewRequest(http.MethodGet, url.url, nil)
+				req, err := http.NewRequest(http.MethodGet, url.url, nil)
+				if err != nil {
+
+				}
 
 				if url.bankName == "Bank 2" {
 					req.Header.Add("Authorization", "auth_token=\"XXXXXXX\"")
@@ -58,10 +64,14 @@ func main() {
 				resp, err := clientBank.Do(req)
 
 				if err != nil {
-					panic(err) // обработка ошибок
+					panic(err) // не хорошо что наше приложение может в любой момент упасть
 				}
+
 				defer resp.Body.Close()
-				body, _ := io.ReadAll(resp.Body) // обработка ошибок
+				body, err := io.ReadAll(resp.Body)
+				if err != nil {
+					panic(err) // не хорошо что наше приложение может в любой момент упасть
+				}
 
 				strBody := string(body)
 
@@ -71,11 +81,11 @@ func main() {
 
 				value, err := strconv.ParseFloat(strBody, 64)
 				if err != nil {
-					panic(err) // паника!!!
+					panic(err) // не хорошо что наше приложение может в любой момент упасть
 				}
 				err = updateCurrency(url.bankName, url.curFrom, url.curFrom, value)
 				if err != nil {
-					panic(err) // паника!!!
+					panic(err) // не хорошо что наше приложение может в любой момент упасть
 				}
 			}
 		}
@@ -85,27 +95,27 @@ func main() {
 }
 
 const ( // вынести в конфиг
-	host     = "localhost"
+	host     = "localhost" // нельзя передавать в прод локалхост, должны получать из внешнего хранилица
 	port     = 5432
 	user     = "postgres"
 	password = "<password>"
 	dbname   = "<dbname>"
 )
 
-func updateCurrency(bank, from, to string, value float64) error {
+func updateCurrency(bank, from, to string, value float64) error { // выполнять в транзакции
 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", psqlconn)
+	db, err := sql.Open("postgres", psqlconn) // конекшин в начале программы а не каждый раз
 	CheckError(err)
 
-	defer db.Close()
+	defer db.Close() // тоже самое нельзя закрывать соединение каждый раз
 
-	err = db.Ping()
+	err = db.Ping() // делать пинг сразу в начале программы и не делать при каждом вызове пинг
 	CheckError(err)
 
-	fmt.Println("Connected!")
+	fmt.Println("Connected!") // логировать отдельной библиотекой
 
-	insertStmt := fmt.Sprintf(`insert into currency_rates ("bank", "from", "to", "value") values('%s', '%s', '%s', '%.2f')`, bank, from, to, value) //
+	insertStmt := fmt.Sprintf(`insert into currency_rates ("bank", "from", "to", "value") values('%s', '%s', '%s', '%.2f')`, bank, from, to, value) // экранировать избежать sql инъекции
 	_, err = db.Exec(insertStmt)
 	return err
 }

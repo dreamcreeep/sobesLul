@@ -5,23 +5,23 @@ type ListNode struct {
 	Next *ListNode
 }
 
-// func removeNthFromEnd(head *ListNode, n int) *ListNode {
-// 	dummy := &ListNode{Next: head}
-// 	first, second := dummy, dummy
+func removeNthFromEnd(head *ListNode, n int) *ListNode {
+	dummy := &ListNode{Next: head}
+	first, second := dummy, dummy
 
-// 	// Сдвигаем первый указатель на n + 1 шагов вперед
-// 	for i := 0; i <= n; i++ {
-// 		first = first.Next
-// 	}
+	// Сдвигаем первый указатель на n + 1 шагов вперед
+	for i := 0; i <= n; i++ {
+		first = first.Next
+	}
 
-// 	// Двигаем оба указателя до конца списка
-// 	for first != nil {
-// 		first = first.Next
-// 		second = second.Next
-// 	}
+	// Двигаем оба указателя до конца списка
+	for first != nil {
+		first = first.Next
+		second = second.Next
+	}
 
-// 	// Удаляем n-й элемент с конца
-// 	second.Next = second.Next.Next
+	// Удаляем n-й элемент с конца
+	second.Next = second.Next.Next
 
-// 	return dummy.Next
-// }
+	return dummy.Next
+}

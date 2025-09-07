@@ -25,7 +25,13 @@ func proceed() {
 			k := j
 			for k < numPages {
 				url := fmt.Sprintf(url, k)
+
 				resp, err := http.Get(url)
+
+				if err != nil {
+					panic(err)
+				}
+
 				k += numWorkers
 			}
 		}()

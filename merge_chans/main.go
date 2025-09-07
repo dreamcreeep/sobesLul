@@ -1,8 +1,11 @@
 package main
 
-import "sync"
+import (
+	"context"
+	"sync"
+)
 
-func merge(chans ...<-chan int) <-chan int {
+func merge(ctx context.Context, chans ...<-chan int) <-chan int {
 	out := make(chan int)
 
 	wg := &sync.WaitGroup{}
@@ -11,8 +14,22 @@ func merge(chans ...<-chan int) <-chan int {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for val := range ch {
-				out <- val
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case val, ok := <-ch:
+					if !ok {
+						return
+					}
+
+					select {
+					case <-ctx.Done():
+						return
+					case out <- val:
+					}
+
+				}
 			}
 		}()
 
